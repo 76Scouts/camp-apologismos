@@ -1847,20 +1847,27 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
   return padRows(grid,T.w);
  }
  function newRec(){
-  var grid=[];
-  grid.push(['']);
+  /* ΜΙΑ γραμμή ανά απόδειξη (αρίθμηση 1..Ν χωρίς κενά): 1η φωτό στη στήλη F, επόμενες φωτό (α, β…) στις G, H…
+     Απόδειξη χωρίς φωτό → «⚠ ΧΩΡΙΣ ΑΠΟΔΕΙΞΗ» (μετράει κανονικά στο ποσό) */
+  var list=eachReceipt(), maxPh=1, sfx='αβγδεζηθ';
+  list.forEach(function(x){ if(x.urls.length>maxPh) maxPh=x.urls.length; });
+  var W=5+maxPh;
+  var grid=[['']];
   grid.push(['','ΑΠΟΔΕΙΞΕΙΣ']);
-  grid.push(['','Αρ. Απόδειξης','Κατηγορία Εξόδου','Προμηθευτής','Ποσό','Σύνδεσμος φωτό']);
-  var sfx='αβγδεζηθ', sum=0;
-  eachReceipt().forEach(function(x){
-    sum+=x.a;
-    var id0=x.urls.length?drvId(x.urls[0]):'';
-    grid.push(['', x.no, x.cat, x.vendor, f2(x.a), id0?viewL(id0):'']);
-    for(var k=1;k<x.urls.length;k++){ var idk=drvId(x.urls[k]); if(!idk)continue; grid.push(['', String(x.no)+(sfx[k-1]||('#'+(k+1))), '', '', '', viewL(idk)]); }
+  var hdr=['','Αρ. Απόδειξης','Κατηγορία Εξόδου','Προμηθευτής','Ποσό','Φωτό απόδειξης'];
+  for(var k=1;k<maxPh;k++) hdr.push('Φωτό '+(k+1)+' ('+sfx[k-1]+')');
+  grid.push(hdr);
+  list.forEach(function(x){
+    var row=['', x.no, x.cat, x.vendor, f2(x.a)];
+    var ids=x.urls.map(drvId).filter(Boolean);
+    if(!ids.length) row.push('⚠ ΧΩΡΙΣ ΑΠΟΔΕΙΞΗ');
+    ids.forEach(function(id){ row.push(viewL(id)); });
+    grid.push(row);
   });
-  /* ΧΩΡΙΣ γραμμή «ΣΥΝΟΛΟ»: αθροιζόταν μαζί με τις αποδείξεις στη στήλη E (διπλό σύνολο) */
-  return padRows(grid,6);
+  grid.push(['']); /* κενή γραμμή: σβήνει τον αυτόματο αύξοντα αριθμό του φακέλου στην επόμενη γραμμή */
+  return padRows(grid,W);
  }
+ window.__missingReceipts=function(){ return eachReceipt().filter(function(x){return !x.urls.length;}).map(function(x){return {no:x.no,cat:x.cat,vendor:x.vendor,a:x.a,t:x.e&&x.e.t,note:x.p&&x.p.note};}); };
  copySynopsi = window.copySynopsi = function(){ var T=tpl(); if(T.extra>0){ alert('⚠ Το φύλλο APOLOGISMOS-SYNOPSI έχει χώρο για '+T.cap+' κατηγορίες εξόδων, η δράση έχει '+T.exp.length+'.\n\n➜ Πρόσθεσε '+T.extra+(T.extra>1?' γραμμές':' γραμμή')+' ΑΚΡΙΒΩΣ πάνω από τη γραμμή «Σύνολο Εσόδων / Σύνολο Εξόδων» (γραμμή '+(14+T.cap)+') και μετά επικόλλησε στο A1.'); } clipWrite(newSyn(), 'APOLOGISMOS-SYNOPSI αντιγράφηκε — επικόλλησε στο κελί A1 του φύλλου APOLOGISMOS-SYNOPSI (πρώτα αυτό, μετά τις αποδείξεις).'); };
  copyReceipts = window.copyReceipts = function(){
    var g=newRec();
@@ -2073,7 +2080,7 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
    try{initAdmin();}catch(e){} var _an=0, _aiv=setInterval(function(){ try{initAdmin();}catch(e){} if(++_an>20)clearInterval(_aiv); },500);
  })();
  /* ---- Version timestamp: διακριτική ετικέτα έκδοσης (ώστε να ξέρεις ποιο build τρέχει) ---- */
- var _BUILD='2026-09-30 21:30';
+ var _BUILD='2026-09-30 22:00';
  (function(){ try{ if(document.getElementById('ovrVer'))return; var v=document.createElement('div'); v.id='ovrVer'; v.textContent='v'+_BUILD; v.title='Έκδοση εφαρμογής (build). Πάτα για αντιγραφή.'; v.style.cssText='position:fixed;top:4px;right:8px;z-index:99999;font:600 10.5px system-ui,Arial;color:#5f8535;background:rgba(255,255,255,.82);border:1px solid rgba(95,133,53,.35);border-radius:7px;padding:2px 7px;opacity:.7;cursor:pointer;user-select:all'; v.onclick=function(){ try{ if(typeof copyText==='function')copyText('v'+_BUILD,'Έκδοση αντιγράφηκε'); else navigator.clipboard.writeText('v'+_BUILD); }catch(e){} }; document.body.appendChild(v); }catch(e){} })();
  _stripCapture(document);
  /* το αρχικό cloudLoad έτρεξε πριν οριστεί το νέο (χωρίς logs/BASE) → ξανα-φόρτωσε μία φορά αν λείπει το ιστορικό */
