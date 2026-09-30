@@ -1752,9 +1752,9 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
  function campOP(){try{return /op/i.test((CLOUD&&CLOUD.key)||'');}catch(e){return false;}}
  var EXP_OP=['Διατροφή','Διαμονή','Μεταφορικά','Υλικά Προγράμματος','Επισκευές','Υλικά Φαρμακείου','Αναμνηστικά','Δημόσιες Σχέσεις κ.ά.','Απρόβλεπτα','Άλλο','Μεταφορές - Καύσιμα'];
  /* ΜΔΥ: ΑΚΡΙΒΩΣ τα ονόματα του BUDGET!G13:G29 του φακέλου (το SUMIF θέλει ίδιο κείμενο — και τα «Μελίδόνι»/«Μαχαιροπιοίας» όπως είναι γραμμένα εκεί) */
- var EXP_MDY=['Διατροφή','Διαμονή','Αεροπορικά + Λεωφορεία Κύπρου','Μεταφορικά','Υλικά Προγράμματος','Υλικά Φαρμακείου','Αναμνηστικά','Δημόσιες Σχέσεις κ.ά.','Απρόβλεπτα','Φαράγγι Σαμαριάς','Τουρ 23/07/2026','Τουρ 24/07/2026','Είσοδος Μονή Αρκαδίου','Είσοδος Μουσείο Ελεύθερνας','Είσοδος Σπηλιά Μελίδόνι','Εργαστήρι Μαχαιροπιοίας','Είσοδος Μουσείο Κνωσσού'];
- /* ΜΔΥ: 17 κατηγορίες → γραμμές 14–30, σύνολα 31, υπόλοιπο 32 */
- function tpl(){ if(campOP()) return {exp:EXP_OP, totRow:27, ypRow:28, catchAll:'Άλλο', w:8}; return {exp:EXP_MDY, totRow:31, ypRow:32, catchAll:'Απρόβλεπτα', w:8}; }
+ var EXP_MDY=['Διατροφή','Διαμονή','Αεροπορικά + Λεωφορεία Κύπρου','Μεταφορικά','Υλικά Προγράμματος','Υλικά Φαρμακείου','Αναμνηστικά','Δημόσιες Σχέσεις κ.ά.','Απρόβλεπτα','Φαράγγι Σαμαριάς','Τουρ 23 & 24/07/2026','Είσοδος Μονή Αρκαδίου','Είσοδος Μουσείο Ελεύθερνας','Είσοδος Σπηλιά Μελίδόνι','Εργαστήρι Μαχαιροπιοίας','Είσοδος Μουσείο Κνωσσού'];
+ /* cap = πόσες γραμμές εξόδων έχει το πρότυπο του φακέλου (ΟΠ 14–26, ΜΔΥ 14–29). Αν οι κατηγορίες είναι περισσότερες → «πρόσθεσε Χ γραμμές» */
+ function tpl(){ var T=campOP()?{exp:EXP_OP, cap:13, catchAll:'Άλλο', w:8}:{exp:EXP_MDY, cap:16, catchAll:'Απρόβλεπτα', w:8}; T.extra=Math.max(0,T.exp.length-T.cap); T.totRow=14+T.cap+T.extra; T.ypRow=T.totRow+1; return T; }
  function has(T,name){ for(var i=0;i<T.exp.length;i++) if(T.exp[i]===name) return name; return null; }
  function bucket(name,T){
    var n=norm(name), i;
@@ -1775,7 +1775,7 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
     1) αν η σημείωση/όνομα της απόδειξης γράφει όνομα κατηγορίας του φακέλου (π.χ. «Τουρ 23/07/2026») → αυτή
     2) ΜΔΥ: λέξεις-κλειδιά στον τίτλο/προμηθευτή (Κνωσσός, Ελεύθερνα, Μελιδόνι, Αρκάδι, μαχαιράδικο, Σαμαριά, αεροπορικά/LCA)
     3) αλλιώς από την κατηγορία της εφαρμογής */
- var KW_MDY=[[/κνωσ/,'Είσοδος Μουσείο Κνωσσού'],[/ελευθερν/,'Είσοδος Μουσείο Ελεύθερνας'],[/μελιδον/,'Είσοδος Σπηλιά Μελίδόνι'],[/αρκαδι/,'Είσοδος Μονή Αρκαδίου'],[/μαχαιρ/,'Εργαστήρι Μαχαιροπιοίας'],[/σαμαρι/,'Φαράγγι Σαμαριάς'],[/αεροπορ|travelpass|\blca\b|kouzalis|κυπρου/,'Αεροπορικά + Λεωφορεία Κύπρου'],[/μεταφορικ|tours/,'Μεταφορικά']];
+ var KW_MDY=[[/κνωσ/,'Είσοδος Μουσείο Κνωσσού'],[/ελευθερν/,'Είσοδος Μουσείο Ελεύθερνας'],[/μελιδον/,'Είσοδος Σπηλιά Μελίδόνι'],[/αρκαδι/,'Είσοδος Μονή Αρκαδίου'],[/μαχαιρ/,'Εργαστήρι Μαχαιροπιοίας'],[/σαμαρι/,'Φαράγγι Σαμαριάς'],[/αεροπορ|travelpass|\blca\b|kouzalis|κυπρου/,'Αεροπορικά + Λεωφορεία Κύπρου'],[/(^|\s)τουρ(\s|$)|tours/,'Τουρ 23 & 24/07/2026']];
  function bucketP(c,e,p,T){
    var pn=norm(p&&p.note||'');
    if(pn){ for(var i=0;i<T.exp.length;i++){ var tn=norm(T.exp[i]); if(tn.length>=5 && pn.indexOf(tn)>=0) return T.exp[i]; } }
@@ -1806,6 +1806,19 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
    });});
    return out;
  }
+ function incomeLines(){
+   var inc=(income||[]).filter(function(x){return +x.a;}).map(function(x){return {src:x.src||'',a:+x.a||0};});
+   if(inc.length) return inc;
+   var wIn=Math.round((wallets||[]).reduce(function(s,w){return s+(+w.opening||0);},0)*100)/100;
+   var ib=(typeof INCBUD!=='undefined'&&INCBUD)?INCBUD:{}, keys=Object.keys(ib);
+   if(keys.length){
+     inc=keys.map(function(k){return {src:k,a:+ib[k]||0};});
+     var d=Math.round((wIn-inc.reduce(function(s,x){return s+x.a;},0))*100)/100;
+     if(Math.abs(d)>=0.01) inc.push({src:(d>0?'Λοιπές εισπράξεις (προς αιτιολόγηση)':'Διαφορά εσόδων (προς αιτιολόγηση)'),a:d});
+     return inc;
+   }
+   return (wallets||[]).filter(function(w){return +w.opening;}).map(function(w){return {src:w.name||'',a:+w.opening||0};});
+ }
  function padRows(grid,w){ grid.forEach(function(r){ while(r.length<w) r.push(''); }); return grid; }
  function newSyn(){
   var T=tpl();
@@ -1821,8 +1834,7 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
   set(13,2,'Α/Α'); set(13,3,'Περιγραφή Εσόδων'); set(13,4,'Ποσό (€)');
   set(13,6,'Α/Α'); set(13,7,'Περιγραφή Εξόδων'); set(13,8,'Ποσό (€)');
   /* Έσοδα: οι γραμμές εσόδων της δράσης· αν δεν έχουν καταχωρηθεί, ό,τι ΠΡΑΓΜΑΤΙΚΑ μπήκε ανά πηγή χρημάτων */
-  var inc=(income||[]).filter(function(x){return +x.a;}).map(function(x){return {src:x.src||'',a:+x.a||0};});
-  if(!inc.length) inc=(wallets||[]).filter(function(w){return +w.opening;}).map(function(w){return {src:w.name||'',a:+w.opening||0};});
+  var inc=incomeLines();
   var maxInc=T.totRow-14, incT=0;
   inc.forEach(function(x,i){ incT+=x.a; if(i<maxInc){ var r=14+i; set(r,2,i+1); set(r,3,x.src); set(r,4,f2(x.a)); } });
   var byB={}; T.exp.forEach(function(m){byB[m]=0;});
@@ -1849,7 +1861,7 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
   grid.push(['','','','ΣΥΝΟΛΟ', f2(sum)]);
   return padRows(grid,6);
  }
- copySynopsi = window.copySynopsi = function(){ clipWrite(newSyn(), 'APOLOGISMOS-SYNOPSI αντιγράφηκε — επικόλλησε στο κελί A1 του φύλλου APOLOGISMOS-SYNOPSI (πρώτα αυτό, μετά τις αποδείξεις).'); };
+ copySynopsi = window.copySynopsi = function(){ var T=tpl(); if(T.extra>0){ alert('⚠ Το φύλλο APOLOGISMOS-SYNOPSI έχει χώρο για '+T.cap+' κατηγορίες εξόδων, η δράση έχει '+T.exp.length+'.\n\n➜ Πρόσθεσε '+T.extra+(T.extra>1?' γραμμές':' γραμμή')+' ΑΚΡΙΒΩΣ πάνω από τη γραμμή «Σύνολο Εσόδων / Σύνολο Εξόδων» (γραμμή '+(14+T.cap)+') και μετά επικόλλησε στο A1.'); } clipWrite(newSyn(), 'APOLOGISMOS-SYNOPSI αντιγράφηκε — επικόλλησε στο κελί A1 του φύλλου APOLOGISMOS-SYNOPSI (πρώτα αυτό, μετά τις αποδείξεις).'); };
  copyReceipts = window.copyReceipts = function(){
    var g=newRec();
    var tsv=g.map(function(r){return r.map(function(c){return String(c==null?'':c);}).join('\t');}).join('\n');
@@ -2061,7 +2073,7 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
    try{initAdmin();}catch(e){} var _an=0, _aiv=setInterval(function(){ try{initAdmin();}catch(e){} if(++_an>20)clearInterval(_aiv); },500);
  })();
  /* ---- Version timestamp: διακριτική ετικέτα έκδοσης (ώστε να ξέρεις ποιο build τρέχει) ---- */
- var _BUILD='2026-09-30 20:15';
+ var _BUILD='2026-09-30 21:00';
  (function(){ try{ if(document.getElementById('ovrVer'))return; var v=document.createElement('div'); v.id='ovrVer'; v.textContent='v'+_BUILD; v.title='Έκδοση εφαρμογής (build). Πάτα για αντιγραφή.'; v.style.cssText='position:fixed;top:4px;right:8px;z-index:99999;font:600 10.5px system-ui,Arial;color:#5f8535;background:rgba(255,255,255,.82);border:1px solid rgba(95,133,53,.35);border-radius:7px;padding:2px 7px;opacity:.7;cursor:pointer;user-select:all'; v.onclick=function(){ try{ if(typeof copyText==='function')copyText('v'+_BUILD,'Έκδοση αντιγράφηκε'); else navigator.clipboard.writeText('v'+_BUILD); }catch(e){} }; document.body.appendChild(v); }catch(e){} })();
  _stripCapture(document);
  /* το αρχικό cloudLoad έτρεξε πριν οριστεί το νέο (χωρίς logs/BASE) → ξανα-φόρτωσε μία φορά αν λείπει το ιστορικό */
