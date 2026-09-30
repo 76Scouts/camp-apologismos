@@ -1751,8 +1751,10 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
  function norm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zα-ω0-9]+/gi,' ').trim();}
  function campOP(){try{return /op/i.test((CLOUD&&CLOUD.key)||'');}catch(e){return false;}}
  var EXP_OP=['Διατροφή','Διαμονή','Μεταφορικά','Υλικά Προγράμματος','Επισκευές','Υλικά Φαρμακείου','Αναμνηστικά','Δημόσιες Σχέσεις κ.ά.','Απρόβλεπτα','Άλλο','Μεταφορές - Καύσιμα'];
- var EXP_MDY=['Διατροφή','Διαμονή','Αεροπορικά + Λεωφορεία Κύπρου','Μεταφορικά','Υλικά Προγράμματος','Υλικά Φαρμακείου','Αναμνηστικά','Δημόσιες Σχέσεις κ.ά.','Απρόβλεπτα','Φαράγγι Σαμαριάς','Τουρ 23/07/2026','Τουρ 24/07/2026','Είσοδος Μονή Αρκαδίου','Είσοδος Μουσείο Ελεύθερνας','Είσοδος Σπηλιά Μελιδόνι','Εργαστήρι Μαχαιροποιίας'];
- function tpl(){ if(campOP()) return {exp:EXP_OP, totRow:27, ypRow:28, catchAll:'Άλλο'}; return {exp:EXP_MDY, totRow:30, ypRow:31, catchAll:'Απρόβλεπτα'}; }
+ /* ΜΔΥ: ΑΚΡΙΒΩΣ τα ονόματα του BUDGET!G13:G29 του φακέλου (το SUMIF θέλει ίδιο κείμενο — και τα «Μελίδόνι»/«Μαχαιροπιοίας» όπως είναι γραμμένα εκεί) */
+ var EXP_MDY=['Διατροφή','Διαμονή','Αεροπορικά + Λεωφορεία Κύπρου','Μεταφορικά','Υλικά Προγράμματος','Υλικά Φαρμακείου','Αναμνηστικά','Δημόσιες Σχέσεις κ.ά.','Απρόβλεπτα','Φαράγγι Σαμαριάς','Τουρ 23/07/2026','Τουρ 24/07/2026','Είσοδος Μονή Αρκαδίου','Είσοδος Μουσείο Ελεύθερνας','Είσοδος Σπηλιά Μελίδόνι','Εργαστήρι Μαχαιροπιοίας','Είσοδος Μουσείο Κνωσσού'];
+ /* ΜΔΥ: 17 κατηγορίες → γραμμές 14–30, σύνολα 31, υπόλοιπο 32 */
+ function tpl(){ if(campOP()) return {exp:EXP_OP, totRow:27, ypRow:28, catchAll:'Άλλο', w:8}; return {exp:EXP_MDY, totRow:31, ypRow:32, catchAll:'Απρόβλεπτα', w:8}; }
  function has(T,name){ for(var i=0;i<T.exp.length;i++) if(T.exp[i]===name) return name; return null; }
  function bucket(name,T){
    var n=norm(name), i;
@@ -1760,7 +1762,7 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
    for(i=0;i<T.exp.length;i++){var tn=norm(T.exp[i]); if(tn&&(tn.indexOf(n)===0||n.indexOf(tn)===0)) return T.exp[i];}
    var cand=null;
    if(/διατροφ|σουπερ|φαγητ/.test(n))cand='Διατροφή';
-   else if(/καυσιμ|βενζιν|πετρελαι/.test(n))cand='Μεταφορές - Καύσιμα';
+   else if(/καυσιμ|βενζιν|πετρελαι|parking|παρκιν/.test(n))cand=(has(T,'Μεταφορές - Καύσιμα')?'Μεταφορές - Καύσιμα':'Μεταφορικά');
    else if(/μεταφορ|λεωφορ|αεροπορ|πλοι|μετακιν|ταξι/.test(n))cand='Μεταφορικά';
    else if(/αναμνηστ/.test(n))cand='Αναμνηστικά';
    else if(/φαρμακ/.test(n))cand='Υλικά Φαρμακείου';
@@ -1769,6 +1771,42 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
    else if(/υλικ|εξοπλ/.test(n))cand='Υλικά Προγράμματος';
    return (cand&&has(T,cand))||T.catchAll;
  }
+ /* Κατηγορία φακέλου ΑΝΑ ΑΠΟΔΕΙΞΗ (part):
+    1) αν η σημείωση/όνομα της απόδειξης γράφει όνομα κατηγορίας του φακέλου (π.χ. «Τουρ 23/07/2026») → αυτή
+    2) ΜΔΥ: λέξεις-κλειδιά στον τίτλο/προμηθευτή (Κνωσσός, Ελεύθερνα, Μελιδόνι, Αρκάδι, μαχαιράδικο, Σαμαριά, αεροπορικά/LCA)
+    3) αλλιώς από την κατηγορία της εφαρμογής */
+ var KW_MDY=[[/κνωσ/,'Είσοδος Μουσείο Κνωσσού'],[/ελευθερν/,'Είσοδος Μουσείο Ελεύθερνας'],[/μελιδον/,'Είσοδος Σπηλιά Μελίδόνι'],[/αρκαδι/,'Είσοδος Μονή Αρκαδίου'],[/μαχαιρ/,'Εργαστήρι Μαχαιροπιοίας'],[/σαμαρι/,'Φαράγγι Σαμαριάς'],[/αεροπορ|travelpass|\blca\b|kouzalis|κυπρου/,'Αεροπορικά + Λεωφορεία Κύπρου'],[/μεταφορικ|tours/,'Μεταφορικά']];
+ function bucketP(c,e,p,T){
+   var pn=norm(p&&p.note||'');
+   if(pn){ for(var i=0;i<T.exp.length;i++){ var tn=norm(T.exp[i]); if(tn.length>=5 && pn.indexOf(tn)>=0) return T.exp[i]; } }
+   var base=bucket(c.n,T);
+   if(!campOP() && (base===T.catchAll || base==='Μεταφορικά')){
+     var s=norm([e&&e.t, e&&e.vendor].join(' '));
+     for(var k=0;k<KW_MDY.length;k++) if(KW_MDY[k][0].test(s)&&has(T,KW_MDY[k][1])) return KW_MDY[k][1];
+   }
+   return base;
+ }
+ function drvId(u){ var m=String(u||'').match(/[-\w]{25,}/); return m?m[0]:''; }
+ function viewL(id){ return 'https://drive.google.com/file/d/'+id+'/view'; }
+ function phUrls(p){ var out=[]; ((p&&p.ph)?p.ph:[]).forEach(function(x){ if(x&&x.url) out.push(x.url); }); return out; }
+ function subUrlByEntry(){ var m={}; (typeof subs!=='undefined'?subs:[]).forEach(function(s){ if(s&&s.url&&s.entryId&&!m[s.entryId]) m[s.entryId]=s.url; }); return m; }
+ /* ΕΝΑΣ κοινός κατάλογος αποδείξεων → ίδια αρίθμηση σε φύλλο ΚΑΙ ZIP. Παραλείπει μηδενικές γραμμές χωρίς φωτό. */
+ function eachReceipt(){
+   var T=tpl(), byE=subUrlByEntry(), out=[], no=0;
+   (cats||[]).forEach(function(c){ (c.log||[]).forEach(function(e){
+     var parts=(e.parts&&e.parts.length)?e.parts:[{a:e.a,note:''}];
+     parts.forEach(function(p,pi){
+       var urls=phUrls(p);
+       if(pi===0 && !urls.length && byE[e.id]) urls=[byE[e.id]];
+       var amt=Math.round((+p.a||0)*100)/100;
+       if(!amt && !urls.length) return;
+       no++;
+       out.push({no:no, cat:bucketP(c,e,p,T), vendor:(e.vendor||e.t||p.note||''), a:amt, urls:urls, e:e, p:p});
+     });
+   });});
+   return out;
+ }
+ function padRows(grid,w){ grid.forEach(function(r){ while(r.length<w) r.push(''); }); return grid; }
  function newSyn(){
   var T=tpl();
   var grid=[]; function set(r,c,v){ while(grid.length<r) grid.push([]); var row=grid[r-1]; while(row.length<c) row.push(''); row[c-1]=(v==null?'':v); }
@@ -1782,67 +1820,54 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
   set(11,2,'Έσοδα'); set(11,6,'Έξοδα');
   set(13,2,'Α/Α'); set(13,3,'Περιγραφή Εσόδων'); set(13,4,'Ποσό (€)');
   set(13,6,'Α/Α'); set(13,7,'Περιγραφή Εξόδων'); set(13,8,'Ποσό (€)');
-  var incT=0;
-  (income||[]).forEach(function(x,i){ var r=14+i; set(r,2,i+1); set(r,3,(x.src||'')); set(r,4,f2(x.a)); incT+=(+x.a||0); });
+  /* Έσοδα: οι γραμμές εσόδων της δράσης· αν δεν έχουν καταχωρηθεί, ό,τι ΠΡΑΓΜΑΤΙΚΑ μπήκε ανά πηγή χρημάτων */
+  var inc=(income||[]).filter(function(x){return +x.a;}).map(function(x){return {src:x.src||'',a:+x.a||0};});
+  if(!inc.length) inc=(wallets||[]).filter(function(w){return +w.opening;}).map(function(w){return {src:w.name||'',a:+w.opening||0};});
+  var maxInc=T.totRow-14, incT=0;
+  inc.forEach(function(x,i){ incT+=x.a; if(i<maxInc){ var r=14+i; set(r,2,i+1); set(r,3,x.src); set(r,4,f2(x.a)); } });
   var byB={}; T.exp.forEach(function(m){byB[m]=0;});
-  (cats||[]).forEach(function(c){ var b=bucket(c.n,T); byB[b]=(byB[b]||0)+(+spentOf(c)||0); });
-  T.exp.forEach(function(m,i){ var r=14+i; set(r,6,i+1); set(r,7,m); set(r,8,f2(byB[m]||0)); });
-  var t=tot();
+  eachReceipt().forEach(function(x){ byB[x.cat]=(byB[x.cat]||0)+x.a; });
+  var expT=0;
+  T.exp.forEach(function(m,i){ var r=14+i; set(r,6,i+1); set(r,7,m); set(r,8,f2(byB[m]||0)); expT+=(byB[m]||0); });
   set(T.totRow,3,'Σύνολο Εσόδων'); set(T.totRow,4,f2(incT));
-  set(T.totRow,7,'Σύνολο Εξόδων'); set(T.totRow,8,f2(t.spent));
-  set(T.ypRow,7,'Υπόλοιπο'); set(T.ypRow,8,f2(t.left));
-  return grid;
+  set(T.totRow,7,'Σύνολο Εξόδων'); set(T.totRow,8,f2(expT));
+  set(T.ypRow,7,'Υπόλοιπο'); set(T.ypRow,8,f2(incT-expT));
+  return padRows(grid,T.w);
  }
- function drvId(u){ var m=String(u||'').match(/[-\w]{25,}/); return m?m[0]:''; }
- function imgF(id){ return '=IMAGE("https://drive.google.com/thumbnail?id='+id+'&sz=w1000")'; }
- function viewL(id){ return 'https://drive.google.com/file/d/'+id+'/view'; }
- function phUrls(p){ var out=[]; ((p&&p.ph)?p.ph:[]).forEach(function(x){ if(x&&x.url) out.push(x.url); }); return out; }
- function subUrlByEntry(){ var m={}; (typeof subs!=='undefined'?subs:[]).forEach(function(s){ if(s&&s.url&&s.entryId&&!m[s.entryId]) m[s.entryId]=s.url; }); return m; }
  function newRec(){
-  var T=tpl(); var byE=subUrlByEntry();
   var grid=[];
   grid.push(['']);
   grid.push(['','ΑΠΟΔΕΙΞΕΙΣ']);
-  grid.push(['','Αρ. Απόδειξης','Κατηγορία Εξόδου','Προμηθευτής','Ποσό','Φωτό απόδειξης','Σύνδεσμος']);
-  var no=0, sfx='αβγδεζηθ';
-  (cats||[]).forEach(function(c){ (c.log||[]).forEach(function(e){
-     var parts=(e.parts&&e.parts.length)?e.parts:[{a:e.a,note:''}];
-     parts.forEach(function(p,pi){ no++;
-       var urls=phUrls(p);
-       if(pi===0 && !urls.length && byE[e.id]) urls=[byE[e.id]];
-       var id0=urls.length?drvId(urls[0]):'';
-       grid.push(['', no, bucket(c.n,T), (e.vendor||e.t||p.note||''), f2(p.a), id0?imgF(id0):'', id0?viewL(id0):'']);
-       for(var k=1;k<urls.length;k++){ var idk=drvId(urls[k]); if(!idk)continue;
-         grid.push(['', String(no)+(sfx[k-1]||('#'+(k+1))), '', '', '', imgF(idk), viewL(idk)]);
-       }
-     });
-  }); });
-  grid.push(['','','','ΣΥΝΟΛΟ', f2(tot().spent)]);
-  return grid;
+  grid.push(['','Αρ. Απόδειξης','Κατηγορία Εξόδου','Προμηθευτής','Ποσό','Σύνδεσμος φωτό']);
+  var sfx='αβγδεζηθ', sum=0;
+  eachReceipt().forEach(function(x){
+    sum+=x.a;
+    var id0=x.urls.length?drvId(x.urls[0]):'';
+    grid.push(['', x.no, x.cat, x.vendor, f2(x.a), id0?viewL(id0):'']);
+    for(var k=1;k<x.urls.length;k++){ var idk=drvId(x.urls[k]); if(!idk)continue; grid.push(['', String(x.no)+(sfx[k-1]||('#'+(k+1))), '', '', '', viewL(idk)]); }
+  });
+  grid.push(['','','','ΣΥΝΟΛΟ', f2(sum)]);
+  return padRows(grid,6);
  }
- copySynopsi = window.copySynopsi = function(){ clipWrite(newSyn(), 'APOLOGISMOS-SYNOPSI αντιγράφηκε — επικόλλησε στο κελί A1 του φύλλου.'); };
+ copySynopsi = window.copySynopsi = function(){ clipWrite(newSyn(), 'APOLOGISMOS-SYNOPSI αντιγράφηκε — επικόλλησε στο κελί A1 του φύλλου APOLOGISMOS-SYNOPSI (πρώτα αυτό, μετά τις αποδείξεις).'); };
  copyReceipts = window.copyReceipts = function(){
    var g=newRec();
    var tsv=g.map(function(r){return r.map(function(c){return String(c==null?'':c);}).join('\t');}).join('\n');
-   copyText(tsv, 'BUDGET-RECEIPTS αντιγράφηκε — επικόλλησε στο κελί A1. Φωτό: κατέβασε το ZIP «📁 Φάκελος αποδείξεων» (αριθμημένες, ίδιο Α/Α).');
+   copyText(tsv, 'BUDGET-RECEIPTS αντιγράφηκε — επικόλλησε στο κελί A1 του φύλλου BUDGET-RECEIPTS. Φωτό: ZIP «📁 Φάκελος αποδείξεων» (ίδιο Α/Α).');
  };
+ window.__exportPreview=function(){ return {syn:newSyn(), rec:newRec()}; };
  /* ---- Φάκελος αποδείξεων: ZIP με αριθμημένα ονόματα + αριθμό πάνω στη φωτό ---- */
  function receiptList(){
-   var T=tpl(), byE=subUrlByEntry(), out=[], no=0, sfx='αβγδεζηθ';
-   (cats||[]).forEach(function(c){ (c.log||[]).forEach(function(e){
-     var parts=(e.parts&&e.parts.length)?e.parts:[{a:e.a,note:''}];
-     parts.forEach(function(p,pi){ no++;
-       var urls=phUrls(p);
-       if(pi===0 && !urls.length && byE[e.id]) urls=[byE[e.id]];
-       urls.forEach(function(u,k){
-         var pad=('0'+no).slice(-2);
-         var tag=(k===0?String(no):(String(no)+(sfx[k-1]||('_'+(k+1)))));
-         var fpad=(k===0?pad:(pad+(sfx[k-1]||('_'+(k+1)))));
-         var vend=String(e.vendor||e.t||p.note||'').replace(/[\\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim().slice(0,40);
-         out.push({tag:tag, url:u, file:[fpad, bucket(c.n,T), vend, f2(p.a)+'€'].join('_')});
-       });
+   var out=[], sfx='αβγδεζηθ';
+   eachReceipt().forEach(function(x){
+     x.urls.forEach(function(u,k){
+       var pad=('0'+x.no).slice(-2);
+       var tag=(k===0?String(x.no):(String(x.no)+(sfx[k-1]||('_'+(k+1)))));
+       var fpad=(k===0?pad:(pad+(sfx[k-1]||('_'+(k+1)))));
+       var vend=String(x.vendor).replace(/[\\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim().slice(0,40);
+       out.push({tag:tag, url:u, file:[fpad, x.cat, vend, f2(x.a)+'€'].join('_')});
      });
-   });});
+   });
    return out;
  }
  function ensureJSZip(){ return new Promise(function(res,rej){ if(window.JSZip)return res(); var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; s.onload=function(){res();}; s.onerror=function(){rej(new Error('jszip'));}; document.head.appendChild(s); }); }
@@ -2036,7 +2061,7 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
    try{initAdmin();}catch(e){} var _an=0, _aiv=setInterval(function(){ try{initAdmin();}catch(e){} if(++_an>20)clearInterval(_aiv); },500);
  })();
  /* ---- Version timestamp: διακριτική ετικέτα έκδοσης (ώστε να ξέρεις ποιο build τρέχει) ---- */
- var _BUILD='2026-09-08 13:20';
+ var _BUILD='2026-09-30 20:15';
  (function(){ try{ if(document.getElementById('ovrVer'))return; var v=document.createElement('div'); v.id='ovrVer'; v.textContent='v'+_BUILD; v.title='Έκδοση εφαρμογής (build). Πάτα για αντιγραφή.'; v.style.cssText='position:fixed;top:4px;right:8px;z-index:99999;font:600 10.5px system-ui,Arial;color:#5f8535;background:rgba(255,255,255,.82);border:1px solid rgba(95,133,53,.35);border-radius:7px;padding:2px 7px;opacity:.7;cursor:pointer;user-select:all'; v.onclick=function(){ try{ if(typeof copyText==='function')copyText('v'+_BUILD,'Έκδοση αντιγράφηκε'); else navigator.clipboard.writeText('v'+_BUILD); }catch(e){} }; document.body.appendChild(v); }catch(e){} })();
  _stripCapture(document);
  /* το αρχικό cloudLoad έτρεξε πριν οριστεί το νέο (χωρίς logs/BASE) → ξανα-φόρτωσε μία φορά αν λείπει το ιστορικό */
