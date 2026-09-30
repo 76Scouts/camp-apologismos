@@ -1858,7 +1858,7 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
     grid.push(['', x.no, x.cat, x.vendor, f2(x.a), id0?viewL(id0):'']);
     for(var k=1;k<x.urls.length;k++){ var idk=drvId(x.urls[k]); if(!idk)continue; grid.push(['', String(x.no)+(sfx[k-1]||('#'+(k+1))), '', '', '', viewL(idk)]); }
   });
-  grid.push(['','','','ΣΥΝΟΛΟ', f2(sum)]);
+  /* ΧΩΡΙΣ γραμμή «ΣΥΝΟΛΟ»: αθροιζόταν μαζί με τις αποδείξεις στη στήλη E (διπλό σύνολο) */
   return padRows(grid,6);
  }
  copySynopsi = window.copySynopsi = function(){ var T=tpl(); if(T.extra>0){ alert('⚠ Το φύλλο APOLOGISMOS-SYNOPSI έχει χώρο για '+T.cap+' κατηγορίες εξόδων, η δράση έχει '+T.exp.length+'.\n\n➜ Πρόσθεσε '+T.extra+(T.extra>1?' γραμμές':' γραμμή')+' ΑΚΡΙΒΩΣ πάνω από τη γραμμή «Σύνολο Εσόδων / Σύνολο Εξόδων» (γραμμή '+(14+T.cap)+') και μετά επικόλλησε στο A1.'); } clipWrite(newSyn(), 'APOLOGISMOS-SYNOPSI αντιγράφηκε — επικόλλησε στο κελί A1 του φύλλου APOLOGISMOS-SYNOPSI (πρώτα αυτό, μετά τις αποδείξεις).'); };
@@ -2073,7 +2073,7 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
    try{initAdmin();}catch(e){} var _an=0, _aiv=setInterval(function(){ try{initAdmin();}catch(e){} if(++_an>20)clearInterval(_aiv); },500);
  })();
  /* ---- Version timestamp: διακριτική ετικέτα έκδοσης (ώστε να ξέρεις ποιο build τρέχει) ---- */
- var _BUILD='2026-09-30 21:00';
+ var _BUILD='2026-09-30 21:30';
  (function(){ try{ if(document.getElementById('ovrVer'))return; var v=document.createElement('div'); v.id='ovrVer'; v.textContent='v'+_BUILD; v.title='Έκδοση εφαρμογής (build). Πάτα για αντιγραφή.'; v.style.cssText='position:fixed;top:4px;right:8px;z-index:99999;font:600 10.5px system-ui,Arial;color:#5f8535;background:rgba(255,255,255,.82);border:1px solid rgba(95,133,53,.35);border-radius:7px;padding:2px 7px;opacity:.7;cursor:pointer;user-select:all'; v.onclick=function(){ try{ if(typeof copyText==='function')copyText('v'+_BUILD,'Έκδοση αντιγράφηκε'); else navigator.clipboard.writeText('v'+_BUILD); }catch(e){} }; document.body.appendChild(v); }catch(e){} })();
  _stripCapture(document);
  /* το αρχικό cloudLoad έτρεξε πριν οριστεί το νέο (χωρίς logs/BASE) → ξανα-φόρτωσε μία φορά αν λείπει το ιστορικό */
