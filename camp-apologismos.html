@@ -1754,7 +1754,12 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
  /* ΜΔΥ: ΑΚΡΙΒΩΣ τα ονόματα του BUDGET!G13:G29 του φακέλου (το SUMIF θέλει ίδιο κείμενο — και τα «Μελίδόνι»/«Μαχαιροπιοίας» όπως είναι γραμμένα εκεί) */
  var EXP_MDY=['Διατροφή','Διαμονή','Αεροπορικά + Λεωφορεία Κύπρου','Μεταφορικά','Υλικά Προγράμματος','Υλικά Φαρμακείου','Αναμνηστικά','Δημόσιες Σχέσεις κ.ά.','Απρόβλεπτα','Φαράγγι Σαμαριάς','Τουρ 23 & 24/07/2026','Είσοδος Μονή Αρκαδίου','Είσοδος Μουσείο Ελεύθερνας','Είσοδος Σπηλιά Μελίδόνι','Εργαστήρι Μαχαιροπιοίας','Είσοδος Μουσείο Κνωσσού'];
  /* cap = πόσες γραμμές εξόδων έχει το πρότυπο του φακέλου (ΟΠ 14–26, ΜΔΥ 14–29). Αν οι κατηγορίες είναι περισσότερες → «πρόσθεσε Χ γραμμές» */
- function tpl(){ var T=campOP()?{exp:EXP_OP, cap:13, catchAll:'Άλλο', w:8}:{exp:EXP_MDY, cap:16, catchAll:'Απρόβλεπτα', w:8}; T.extra=Math.max(0,T.exp.length-T.cap); T.totRow=14+T.cap+T.extra; T.ypRow=T.totRow+1; return T; }
+ function govF(){ try{ return (A&&A.gov&&A.gov.folder)||{}; }catch(e){ return {}; } }
+ function tpl(){ var g=govF(), op=campOP();
+   var exp=(g.cats&&g.cats.length)?g.cats.slice():(op?EXP_OP:EXP_MDY).slice();
+   var cap=(+g.cap>0)?(+g.cap):(op?13:16);
+   var T={exp:exp, cap:cap, w:8}; T.catchAll=(op&&has(T,'Άλλο'))?'Άλλο':(has(T,'Απρόβλεπτα')||has(T,'Άλλο')||exp[exp.length-1]);
+   T.extra=Math.max(0,exp.length-cap); T.totRow=14+cap+T.extra; T.ypRow=T.totRow+1; return T; }
  function has(T,name){ for(var i=0;i<T.exp.length;i++) if(T.exp[i]===name) return name; return null; }
  function bucket(name,T){
    var n=norm(name), i;
@@ -1776,16 +1781,21 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
     2) ΜΔΥ: λέξεις-κλειδιά στον τίτλο/προμηθευτή (Κνωσσός, Ελεύθερνα, Μελιδόνι, Αρκάδι, μαχαιράδικο, Σαμαριά, αεροπορικά/LCA)
     3) αλλιώς από την κατηγορία της εφαρμογής */
  var KW_MDY=[[/κνωσ/,'Είσοδος Μουσείο Κνωσσού'],[/ελευθερν/,'Είσοδος Μουσείο Ελεύθερνας'],[/μελιδον/,'Είσοδος Σπηλιά Μελίδόνι'],[/αρκαδι/,'Είσοδος Μονή Αρκαδίου'],[/μαχαιρ/,'Εργαστήρι Μαχαιροπιοίας'],[/σαμαρι/,'Φαράγγι Σαμαριάς'],[/αεροπορ|travelpass|\blca\b|kouzalis|κυπρου/,'Αεροπορικά + Λεωφορεία Κύπρου'],[/(^|\s)τουρ(\s|$)|tours/,'Τουρ 23 & 24/07/2026']];
- function bucketP(c,e,p,T){
+ function bucketP(c,e,p,T,pi,noOv){
+   var f=govF();
+   if(!noOv && f.ov){ var k=((e&&e.id)||'')+':'+(pi||0); if(f.ov[k]&&has(T,f.ov[k])) return f.ov[k]; }
    var pn=norm(p&&p.note||'');
    if(pn){ for(var i=0;i<T.exp.length;i++){ var tn=norm(T.exp[i]); if(tn.length>=5 && pn.indexOf(tn)>=0) return T.exp[i]; } }
+   if(f.catMap&&f.catMap[c.n]&&has(T,f.catMap[c.n])) return f.catMap[c.n];
    var base=bucket(c.n,T);
    if(!campOP() && (base===T.catchAll || base==='Μεταφορικά')){
-     var s=norm([e&&e.t, e&&e.vendor].join(' '));
-     for(var k=0;k<KW_MDY.length;k++) if(KW_MDY[k][0].test(s)&&has(T,KW_MDY[k][1])) return KW_MDY[k][1];
+     var s2=norm([e&&e.t, e&&e.vendor].join(' '));
+     for(var k2=0;k2<KW_MDY.length;k2++) if(KW_MDY[k2][0].test(s2)&&has(T,KW_MDY[k2][1])) return KW_MDY[k2][1];
    }
    return base;
  }
+ /* η «προεπιλογή» μιας κατηγορίας εφαρμογής (χωρίς εξαιρέσεις αποδείξεων) */
+ function catDefault(cn,T){ var f=govF(); if(f.catMap&&f.catMap[cn]&&has(T,f.catMap[cn])) return f.catMap[cn]; return bucket(cn,T); }
  function drvId(u){ var m=String(u||'').match(/[-\w]{25,}/); return m?m[0]:''; }
  function viewL(id){ return 'https://drive.google.com/file/d/'+id+'/view'; }
  function phUrls(p){ var out=[]; ((p&&p.ph)?p.ph:[]).forEach(function(x){ if(x&&x.url) out.push(x.url); }); return out; }
@@ -1801,20 +1811,26 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
        var amt=Math.round((+p.a||0)*100)/100;
        if(!amt && !urls.length) return;
        no++;
-       out.push({no:no, cat:bucketP(c,e,p,T), vendor:(e.vendor||e.t||p.note||''), a:amt, urls:urls, e:e, p:p});
+       out.push({no:no, cat:bucketP(c,e,p,T,pi), auto:bucketP(c,e,p,T,pi,true), key:((e.id||'')+':'+pi), cn:c.n, vendor:(e.vendor||e.t||p.note||''), a:amt, urls:urls, e:e, p:p, nparts:parts.length});
      });
    });});
    return out;
  }
+ function moneyIn(){ return Math.round((wallets||[]).reduce(function(s,w){return s+(+w.opening||0);},0)*100)/100; }
+ function incRepBase(){
+   var g=(A&&A.gov)||{};
+   if(g.incRep&&g.incRep.length) return g.incRep.map(function(x){return {src:x.src||'',a:+x.a||0};});
+   var ib=(typeof INCBUD!=='undefined'&&INCBUD)?INCBUD:{}, keys=Object.keys(ib);
+   if(keys.length) return keys.map(function(k){return {src:k,a:+ib[k]||0};});
+   return null;
+ }
  function incomeLines(){
    var inc=(income||[]).filter(function(x){return +x.a;}).map(function(x){return {src:x.src||'',a:+x.a||0};});
    if(inc.length) return inc;
-   var wIn=Math.round((wallets||[]).reduce(function(s,w){return s+(+w.opening||0);},0)*100)/100;
-   var ib=(typeof INCBUD!=='undefined'&&INCBUD)?INCBUD:{}, keys=Object.keys(ib);
-   if(keys.length){
-     inc=keys.map(function(k){return {src:k,a:+ib[k]||0};});
-     var d=Math.round((wIn-inc.reduce(function(s,x){return s+x.a;},0))*100)/100;
-     if(Math.abs(d)>=0.01) inc.push({src:(d>0?'Λοιπές εισπράξεις (προς αιτιολόγηση)':'Διαφορά εσόδων (προς αιτιολόγηση)'),a:d});
+   inc=incRepBase();
+   if(inc){
+     var d=Math.round((moneyIn()-inc.reduce(function(s,x){return s+x.a;},0))*100)/100;
+     if(Math.abs(d)>=0.01) inc.push({src:(d>0?'Λοιπές εισπράξεις (προς αιτιολόγηση)':'Διαφορά εσόδων (προς αιτιολόγηση)'),a:d,diff:true});
      return inc;
    }
    return (wallets||[]).filter(function(w){return +w.opening;}).map(function(w){return {src:w.name||'',a:+w.opening||0};});
@@ -2077,6 +2093,249 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
    cstat("✅ Φορτώθηκε το κοινό ταμείο <span style='color:var(--muted);font-weight:400'>"+new Date().toLocaleTimeString("el-GR")+"</span>");}
    else{ if(typeof notFoundUI==='function')notFoundUI(); }
  }; }
+ /* ======================= GOV: φάκελος δράσης · έσοδα απολογισμού · κλείδωμα =======================
+    Σχήμα δεδομένων (σταθερό — για να το διαβάσει αργότερα ο κόμβος governance της δράσης):
+      meta.gov = { v:1,
+        folder:{ cats:[ονόματα κατηγοριών εξόδων ΑΚΡΙΒΩΣ όπως στο BUDGET], cap:γραμμές εξόδων στη σύνοψη του φύλλου,
+                 catMap:{ 'κατηγορία εφαρμογής':'κατηγορία φακέλου' }, ov:{ 'entryId:partIdx':'κατηγορία φακέλου' } },
+        incRep:[ {src:'Από Εκδρομείς', a:14400}, … ]   // έσοδα για τον απολογισμό (ΔΕΝ αλλάζουν «Στο χέρι»/υπόλοιπα)
+      }
+      close.locked = true|false, close.lockedAt, close.lockedBy, close.snapUrl (τελικό αντίγραφο στο Drive/imports)
+ */
+ (function(){
+   if(typeof metaOut==='function' && typeof metaIn==='function'){ var _mo=metaOut, _mi=metaIn;
+     metaOut = window.metaOut = function(){ var m=_mo.apply(this,arguments); try{ if(A&&A.gov) m.gov=A.gov; }catch(e){} return m; };
+     metaIn = window.metaIn = function(m){ var r=_mi.apply(this,arguments); try{ if(m&&m.gov) A.gov=m.gov; }catch(e){} return r; };
+   }
+ })();
+ function _gesc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+ function _geur(x){ try{ return eur(Math.round((+x||0)*100)/100); }catch(e){ return '€'+f2(x); } }
+
+ /* ---------- Κλείδωμα ---------- */
+ function govLocked(){ try{ return !!(close&&close.locked); }catch(e){ return false; } }
+ window.govLocked=govLocked;
+ var _lockToastT=0;
+ function lockToast(){ var n=Date.now(); if(n-_lockToastT<2500) return; _lockToastT=n; try{ alert('🔒 Η δράση είναι κλειστή — μόνο ανάγνωση.\nΗ αλλαγή δεν κρατήθηκε. (Άνοιγμα ξανά: «Κλείσιμο δράσης» → 🔓, με admin PIN.)'); }catch(e){} }
+ (function(){
+   if(typeof markDirty==='function'){ var _md=markDirty; window.__govMarkDirty=_md;
+     markDirty = window.markDirty = function(){
+       if(govLocked()){ var _keepClose=close; try{ if(BASE) applyState(JSON.parse(JSON.stringify(BASE))); }catch(e){} close=_keepClose; try{ clearDirty(); }catch(e){} try{ render(); }catch(e){} lockToast(); return; }
+       return _md.apply(this,arguments);
+     }; }
+   if(typeof cloudSave==='function'){ var _cs=cloudSave; window.__govCloudSave=_cs;
+     cloudSave = window.cloudSave = function(){ if(govLocked()&&!window.__govForceSave){ lockToast(); return; } return _cs.apply(this,arguments); }; }
+ })();
+ function _b64utf8(str){ return btoa(unescape(encodeURIComponent(str))); }
+ async function govSnapshot(){
+   try{
+     var st=_stateObj(); var js=JSON.stringify(st,function(k,v){ return k==='_file'?undefined:v; });
+     var d=new Date(), stamp=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+'_'+('0'+d.getHours()).slice(-2)+('0'+d.getMinutes()).slice(-2);
+     var r=await fetch(CLOUD.url,{method:'POST',body:JSON.stringify({action:'importFile',key:CLOUD.key,pin:SESSION.pin,admin:SESSION.admin,kind:'ΤΕΛΙΚΟ',file:{name:'ΤΕΛΙΚΟ_'+CLOUD.key+'_'+stamp+'.json',type:'application/json',data:_b64utf8(js)}})});
+     var s=JSON.parse(await r.text()); if(s&&s.ok&&s.url) return s.url;
+   }catch(e){}
+   return '';
+ }
+ window.govLock = async function(){
+   if(govLocked()) return;
+   if(!CLOUD.url){ alert('Χρειάζεται σύνδεση με το κοινό ταμείο.'); return; }
+   if(dirty && !confirm('Υπάρχουν μη αποθηκευμένες αλλαγές — θα αποθηκευτούν πριν το κλείσιμο. Συνέχεια;')) return;
+   if(!confirm('🔒 Κλείσιμο δράσης «'+(A.title||CLOUD.key)+'»;\n\n• Γίνεται ΜΟΝΟ ΑΝΑΓΝΩΣΗ για όλους (καμία αλλαγή/διαγραφή).\n• Σώζεται τελικό αντίγραφο στο Drive της δράσης (imports).\n• Αντιγραφές/ZIP για τον φάκελο δουλεύουν κανονικά.\n• Άνοιγμα ξανά μόνο με admin PIN.')) return;
+   if(!SESSION.pin && !SESSION.admin){ var p=prompt('🔒 PIN δράσης (ή admin) για το κλείσιμο:'); if(!p) return; SESSION.pin=p; }
+   try{ snap(); }catch(e){}
+   close=close||{}; close.locked=true; close.lockedAt=new Date().toISOString(); try{ close.lockedBy=getWho(); }catch(e){ close.lockedBy=''; }
+   window.__govForceSave=true; try{ window.__govMarkDirty(); window.__govCloudSave(); }finally{ setTimeout(function(){ window.__govForceSave=false; },500); }
+   try{ render(); }catch(e){}
+   var url=await govSnapshot();
+   if(url){ close.snapUrl=url; window.__govForceSave=true; try{ window.__govMarkDirty(); setTimeout(function(){ try{ window.__govCloudSave(); }finally{ setTimeout(function(){window.__govForceSave=false;},500);} },4000); }catch(e){ window.__govForceSave=false; } }
+   alert('🔒 Η δράση έκλεισε.'+(url?'\nΤελικό αντίγραφο: Drive → '+CLOUD.key+' → imports.':'\n⚠ Το αντίγραφο στο Drive δεν ανέβηκε — κατέβασέ το από «⬇ Τελικό αντίγραφο».'));
+   try{ render(); }catch(e){}
+ };
+ window.govDownloadSnap = function(){ try{ var js=JSON.stringify(_stateObj(),function(k,v){ return k==='_file'?undefined:v; },1); var b=new Blob([js],{type:'application/json'}); var u=URL.createObjectURL(b), a=document.createElement('a'); a.href=u; a.download='ΤΕΛΙΚΟ_'+(CLOUD.key||'δράση')+'.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(u);},2000); }catch(e){ alert('Δεν έγινε λήψη.'); } };
+ window.govUnlock = async function(){
+   if(!govLocked()) return;
+   var pin=prompt('🔓 Άνοιγμα ξανά της δράσης — admin PIN:'); if(!pin) return;
+   var ok=false; try{ var r=await fetch(CLOUD.url+'?action=list&admin='+encodeURIComponent(pin)+'&t='+Date.now()); var s=await r.json(); ok=!!(s&&s.ok); }catch(e){}
+   if(!ok){ alert('Λάθος admin PIN (ή δεν υπάρχει σύνδεση).'); return; }
+   SESSION.admin=pin; try{ sessionStorage.setItem('apolog_admin',pin); }catch(e){}
+   close.locked=false; close.reopenedAt=new Date().toISOString(); try{ close.reopenedBy=getWho(); }catch(e){}
+   window.__govMarkDirty(); window.__govCloudSave(); try{ render(); }catch(e){}
+   alert('🔓 Η δράση άνοιξε ξανά για επεξεργασία.');
+ };
+ function govLockBar(){
+   var id='govLockBar', el=document.getElementById(id);
+   if(!govLocked()){ if(el) el.remove(); document.body.classList.remove('govLocked'); return; }
+   document.body.classList.add('govLocked');
+   if(!el){ el=document.createElement('div'); el.id=id; el.style.cssText='position:sticky;top:0;z-index:9000;background:#fff3cd;color:#6b4e00;border-bottom:2px solid #e0b84d;padding:7px 12px;font:700 13px system-ui,Arial;text-align:center'; document.body.insertBefore(el, document.body.firstChild); }
+   var when=''; try{ when=new Date(close.lockedAt).toLocaleString('el-GR'); }catch(e){}
+   el.innerHTML='🔒 Κλειστή δράση — μόνο ανάγνωση'+(when?(' · '+_gesc(when)):'')+(close.lockedBy?(' · '+_gesc(close.lockedBy)):'')+' <span style="font-weight:400">· αντιγραφές/ZIP για τον φάκελο δουλεύουν</span>';
+ }
+ (function(){ if(typeof renderClose==='function'){ var _rc=renderClose; renderClose = window.renderClose = function(){ var r=_rc.apply(this,arguments); try{
+   var box=document.getElementById('closeBox'); if(!box) return r;
+   var h='<div id="govLockSec" style="margin-top:10px;padding-top:10px;border-top:2px solid var(--line)">';
+   if(govLocked()){
+     var when=''; try{ when=new Date(close.lockedAt).toLocaleString('el-GR'); }catch(e){}
+     h+='<div style="font-weight:800;color:#6b4e00">🔒 Η δράση έκλεισε'+(when?(' · '+_gesc(when)):'')+(close.lockedBy?(' · '+_gesc(close.lockedBy)):'')+'</div>'
+       +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'
+       +(close.snapUrl?('<a class="pbuy" style="padding:8px 12px;text-decoration:none" target="_blank" href="'+_gesc(close.snapUrl)+'">📄 Τελικό αντίγραφο (Drive)</a>'):'')
+       +'<button class="pbuy" style="padding:8px 12px" onclick="govDownloadSnap()">⬇ Τελικό αντίγραφο</button>'
+       +'<button class="pbuy" style="padding:8px 12px" onclick="govUnlock()">🔓 Άνοιγμα ξανά (admin)</button></div>';
+   } else {
+     h+='<button style="border:0;border-radius:9px;padding:10px 14px;font-weight:800;background:#6b4e00;color:#fff" onclick="govLock()">🔒 Κλείσιμο &amp; κλείδωμα δράσης</button>'
+       +'<div style="color:var(--muted);font-size:12px;margin-top:5px">Όταν τελειώσει ο απολογισμός: μόνο ανάγνωση για όλους + τελικό αντίγραφο στο Drive. Ανοίγει ξανά μόνο με admin PIN.</div>';
+   }
+   h+='</div>';
+   var old=document.getElementById('govLockSec'); if(old) old.remove();
+   box.insertAdjacentHTML('beforeend',h);
+ }catch(e){} return r; }; } })();
+
+ /* ---------- Πάνελ «📁 Φάκελος»: Προεπισκόπηση · Κατηγορίες φακέλου · Έσοδα ---------- */
+ var GV={tab:'preview', W:null, showAll:false, inc:null};
+ function _gclone(x){ return JSON.parse(JSON.stringify(x||{})); }
+ function govWork(){ /* πρόχειρο αντίγραφο ρυθμίσεων όσο είναι ανοιχτό το πάνελ */
+   if(!GV.W){ var g=_gclone((A&&A.gov)||{}); g.v=1; g.folder=g.folder||{}; var T=tpl();
+     if(!g.folder.cats||!g.folder.cats.length) g.folder.cats=T.exp.slice(); if(!(+g.folder.cap>0)) g.folder.cap=T.cap;
+     g.folder.catMap=g.folder.catMap||{}; g.folder.ov=g.folder.ov||{}; GV.W=g; }
+   return GV.W;
+ }
+ function govWithWork(fn){ /* τρέξε υπολογισμούς με τις ΠΡΟΧΕΙΡΕΣ ρυθμίσεις (προεπισκόπηση πριν την αποθήκευση) */
+   var keep=A.gov; try{ if(GV.W||GV.inc){ var w=_gclone(GV.W||A.gov||{}); if(GV.inc) w.incRep=GV.inc.filter(function(x){return x.src||+x.a;}); A.gov=w; } return fn(); } finally { A.gov=keep; }
+ }
+ function govChecks(){
+   var T=tpl(), list=eachReceipt(), out=[];
+   if(T.extra>0) out.push(['warn','Το φύλλο έχει '+T.cap+' γραμμές εξόδων, η δράση '+T.exp.length+' κατηγορίες → <b>πρόσθεσε '+T.extra+(T.extra>1?' γραμμές':' γραμμή')+'</b> πάνω από το «Σύνολο Εσόδων/Εξόδων» (γραμμή '+(14+T.cap)+') πριν την επικόλληση.']);
+   else out.push(['ok','Οι '+T.exp.length+' κατηγορίες χωράνε στις '+T.cap+' γραμμές του φύλλου.']);
+   var inc=incomeLines(), dl=inc.filter(function(x){return x.diff;})[0];
+   if(inc.length>T.cap+T.extra) out.push(['warn','Οι γραμμές εσόδων ('+inc.length+') δεν χωράνε στη σύνοψη.']);
+   if(dl) out.push(['warn','Έσοδα απολογισμού ≠ όσα μπήκαν στις πηγές (€'+f2(moneyIn())+'): <b>'+_geur(dl.a)+' προς αιτιολόγηση</b> → καρτέλα «Έσοδα».']);
+   else if(!(income&&income.length)&&!incRepBase()) out.push(['info','Δεν έχουν οριστεί έσοδα απολογισμού — βγαίνουν ανά πηγή χρημάτων. Όρισέ τα στην καρτέλα «Έσοδα».']);
+   else out.push(['ok','Τα έσοδα συμφωνούν με όσα μπήκαν στις πηγές ('+_geur(moneyIn())+').']);
+   var np=list.filter(function(x){return !x.urls.length;}), npS=np.reduce(function(s,x){return s+x.a;},0);
+   out.push(np.length?['warn','<b>'+np.length+' αποδείξεις χωρίς φωτό</b> ('+_geur(npS)+') — βγαίνουν «⚠ ΧΩΡΙΣ ΑΠΟΔΕΙΞΗ».',np]:['ok','Όλες οι αποδείξεις έχουν φωτό.']);
+   var nn=list.filter(function(x){ return x.nparts>1 && /^[\s;.,\-_]*$/.test(String(x.p&&x.p.note||'')); });
+   if(nn.length) out.push(['warn','<b>'+nn.length+' αποδείξεις χωρίς όνομα</b> σε έξοδα με πολλές αποδείξεις (π.χ. «;»).',nn]);
+   var ca=list.filter(function(x){return x.cat===T.catchAll;}), caS=ca.reduce(function(s,x){return s+x.a;},0);
+   if(ca.length) out.push(['info',ca.length+' αποδείξεις πάνε στα «'+_gesc(T.catchAll)+'» ('+_geur(caS)+') — έλεγξε αν ανήκουν αλλού (καρτέλα «Κατηγορίες»).',ca]);
+   var syn=newSyn(), yp=+syn[T.ypRow-1][7], app=tot().left;
+   if(Math.abs(yp-app)<0.01) out.push(['ok','Υπόλοιπο απολογισμού '+_geur(yp)+' = υπόλοιπο εφαρμογής.']);
+   else out.push(['info','Υπόλοιπο απολογισμού '+_geur(yp)+' · εφαρμογή («Μένουν») '+_geur(app)+' — διαφέρουν (π.χ. μη-μετρητά/απλήρωτα).']);
+   return out;
+ }
+ function govRecLine(x){ return '#'+x.no+' · '+_gesc(x.vendor)+(x.p&&x.p.note&&x.p.note!==x.vendor?(' <small style="color:var(--muted)">'+_gesc(x.p.note)+'</small>'):'')+' · '+_geur(x.a)+' <small style="color:var(--muted)">('+_gesc(x.cat)+')</small>'; }
+ function govRenderPreview(){
+   return govWithWork(function(){
+     var T=tpl(), syn=newSyn(), ck=govChecks(), ic={ok:'✅',warn:'⚠️',info:'ℹ️'};
+     var h='<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">';
+     ck.forEach(function(c){ h+='<div style="font-size:13px;line-height:1.4;padding:6px 9px;border-radius:8px;background:'+(c[0]==='warn'?'#fff6df':(c[0]==='ok'?'#eef6e8':'#f1f4f8'))+'">'+ic[c[0]]+' '+c[1]+(c[2]&&c[2].length?('<details style="margin-top:3px"><summary style="cursor:pointer;color:var(--muted);font-size:12px">λίστα</summary><div style="font-size:12px;margin-top:3px">'+c[2].map(govRecLine).join('<br>')+'</div></details>'):'')+'</div>'; });
+     h+='</div>';
+     var n=Math.max(T.cap+T.extra,0), td='padding:3px 6px;border-bottom:1px solid var(--line)';
+     h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><tr style="color:var(--muted);text-align:left"><th style="'+td+'">Α/Α</th><th style="'+td+'">Έσοδα</th><th style="'+td+';text-align:right">€</th><th style="width:14px"></th><th style="'+td+'">Α/Α</th><th style="'+td+'">Έξοδα</th><th style="'+td+';text-align:right">€</th></tr>';
+     for(var r=14;r<14+n;r++){ var row=syn[r-1]||[]; h+='<tr><td style="'+td+'">'+_gesc(row[1])+'</td><td style="'+td+'">'+_gesc(row[2])+'</td><td style="'+td+';text-align:right">'+(row[3]!==''&&row[3]!=null?_geur(row[3]):'')+'</td><td></td><td style="'+td+'">'+_gesc(row[5])+'</td><td style="'+td+'">'+_gesc(row[6])+'</td><td style="'+td+';text-align:right'+(+row[7]===0?';color:var(--muted)':'')+'">'+(row[7]!==''&&row[7]!=null?_geur(row[7]):'')+'</td></tr>'; }
+     var tr=syn[T.totRow-1]||[], yr=syn[T.ypRow-1]||[];
+     h+='<tr style="font-weight:800"><td></td><td style="'+td+'">Σύνολο Εσόδων</td><td style="'+td+';text-align:right">'+_geur(tr[3])+'</td><td></td><td></td><td style="'+td+'">Σύνολο Εξόδων</td><td style="'+td+';text-align:right">'+_geur(tr[7])+'</td></tr>';
+     h+='<tr style="font-weight:800"><td colspan="5"></td><td style="'+td+'">Υπόλοιπο</td><td style="'+td+';text-align:right">'+_geur(yr[7])+'</td></tr></table></div>';
+     var dirtyW=!!GV.W && JSON.stringify(GV.W)!==JSON.stringify(_gclone((A&&A.gov&&{v:1,folder:A.gov.folder,incRep:A.gov.incRep})||{}));
+     h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'
+       +'<button class="govB" onclick="govCopy(\'syn\')">📋 Αντιγραφή ΣΥΝΟΨΗΣ <small>→ A1 του APOLOGISMOS-SYNOPSI</small></button>'
+       +'<button class="govB" onclick="govCopy(\'rec\')">📋 Αντιγραφή ΑΠΟΔΕΙΞΕΩΝ <small>→ A1 του BUDGET-RECEIPTS</small></button>'
+       +'<button class="govB" style="background:#5f8535;color:#fff" onclick="genReceiptsZip()">📁 ZIP αποδείξεων</button></div>'
+       +'<div style="color:var(--muted);font-size:12px;margin-top:6px">Σειρά: πρώτα η σύνοψη, μετά οι αποδείξεις. Η αντιγραφή χρησιμοποιεί τις ρυθμίσεις όπως φαίνονται εδώ'+(GV.W?' (και τις μη αποθηκευμένες — πάτα «💾 Αποθήκευση» για να μείνουν)':'')+'.</div>';
+     return h;
+   });
+ }
+ window.govCopy=function(which){ govWithWork(function(){
+   if(which==='syn'){ var T=tpl(); clipWrite(newSyn(), 'APOLOGISMOS-SYNOPSI αντιγράφηκε — επικόλλησε στο κελί A1 του φύλλου APOLOGISMOS-SYNOPSI'+(T.extra>0?(' (ΠΡΩΤΑ πρόσθεσε '+T.extra+' γραμμή/ές πάνω από τη γραμμή '+(14+T.cap)+')'):'')+'.'); }
+   else { var g=newRec(); var tsv=g.map(function(r){return r.map(function(c){return String(c==null?'':c);}).join('\t');}).join('\n'); copyText(tsv,'BUDGET-RECEIPTS αντιγράφηκε — επικόλλησε στο κελί A1 του φύλλου BUDGET-RECEIPTS.'); }
+ }); };
+ function govOpt(list,sel,autoLbl){ var h=autoLbl!=null?('<option value="">'+_gesc(autoLbl)+'</option>'):''; list.forEach(function(n){ h+='<option'+(n===sel?' selected':'')+'>'+_gesc(n)+'</option>'; }); return h; }
+ function govRenderCats(){
+   var W=govWork();
+   return govWithWork(function(){
+     var T=tpl(), list=eachReceipt();
+     var h='<div style="font-size:12.5px;color:var(--muted);margin-bottom:6px">Οι κατηγορίες ΕΞΟΔΩΝ του φακέλου, <b>ακριβώς</b> όπως στο φύλλο BUDGET (στήλη «ΑΙΤΙΟΛΟΓΙΑ» εξόδων) — μία ανά γραμμή. Αντίγραψέ τες από το Excel και επικόλλησε.</div>'
+       +'<textarea id="govCatsTa" rows="7" style="width:100%;box-sizing:border-box;font:13px system-ui;padding:7px;border:1px solid var(--line);border-radius:8px" oninput="govCatsEdit()">'+_gesc(W.folder.cats.join('\n'))+'</textarea>'
+       +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0 12px"><label style="font-size:12.5px">Γραμμές εξόδων στη σύνοψη του φύλλου: <input id="govCap" type="number" min="1" value="'+(+W.folder.cap||'')+'" style="width:60px" oninput="govCapEdit()"></label>'
+       +'<button class="pbuy" style="padding:5px 9px" onclick="govCatsReset()">↺ προεπιλογή ('+(campOP()?'ΟΠ':'ΜΔΥ')+')</button></div>';
+     h+='<h4 style="margin:8px 0 4px">Κατηγορία εφαρμογής → κατηγορία φακέλου</h4><table style="width:100%;border-collapse:collapse;font-size:12.5px">';
+     var sums={}; list.forEach(function(x){ sums[x.cn]=(sums[x.cn]||0)+x.a; });
+     (cats||[]).forEach(function(c){ var cur=W.folder.catMap[c.n]||''; var auto=bucket(c.n,T);
+       h+='<tr style="border-top:1px solid var(--line)"><td style="padding:4px 4px">'+_gesc(c.n)+' <small style="color:var(--muted)">'+_geur(sums[c.n]||0)+'</small></td><td style="padding:4px 4px"><select style="max-width:100%" onchange="govMapEdit(this,\''+encodeURIComponent(c.n).replace(/'/g,'%27')+'\')">'+govOpt(T.exp,cur,'αυτόματο → '+auto)+'</select></td></tr>'; });
+     h+='</table>';
+     var ex=list.filter(function(x){ return GV.showAll || W.folder.ov[x.key] || x.cat!==catDefault(x.cn,T); });
+     h+='<h4 style="margin:14px 0 4px">Αποδείξεις '+(GV.showAll?'(όλες)':'που ΔΕΝ ακολουθούν την κατηγορία τους')+' <label style="font-weight:400;font-size:12px;margin-left:8px"><input type="checkbox" '+(GV.showAll?'checked':'')+' onchange="GV_showAll(this.checked)"> δείξε όλες</label></h4>';
+     if(!ex.length) h+='<div style="color:var(--muted);font-size:12.5px">— καμία εξαίρεση —</div>';
+     else { h+='<table style="width:100%;border-collapse:collapse;font-size:12.5px">';
+       ex.forEach(function(x){ var cur=W.folder.ov[x.key]||'';
+         h+='<tr style="border-top:1px solid var(--line)"><td style="padding:4px">#'+x.no+' '+_gesc(x.vendor)+(x.p&&x.p.note&&x.p.note!==x.vendor?(' <small style="color:var(--muted)">'+_gesc(x.p.note)+'</small>'):'')+' · '+_geur(x.a)+'<br><small style="color:var(--muted)">'+_gesc(x.cn)+'</small></td><td style="padding:4px"><select style="max-width:100%" onchange="govOvEdit(this,\''+x.key+'\')">'+govOpt(T.exp,cur,'ακολουθεί κανόνα → '+x.auto)+'</select></td></tr>'; });
+       h+='</table>'; }
+     h+='<div style="color:var(--muted);font-size:12px;margin-top:8px">Συμβουλή: αν γράψεις στο όνομα μιας απόδειξης το όνομα κατηγορίας του φακέλου (π.χ. «Τουρ 23/07/2026»), πηγαίνει εκεί αυτόματα.</div>';
+     return h;
+   });
+ }
+ window.GV_showAll=function(v){ GV.showAll=!!v; govPaint(); };
+ window.govCatsEdit=function(){ var W=govWork(), ta=document.getElementById('govCatsTa'); if(!ta) return; W.folder.cats=ta.value.split('\n').map(function(x){return x.replace(/\s+$/,'').replace(/^\s+/,'');}).filter(Boolean); govMarkW(); };
+ window.govCapEdit=function(){ var W=govWork(), el=document.getElementById('govCap'); var v=parseInt(el&&el.value); if(v>0) W.folder.cap=v; govMarkW(); };
+ window.govCatsReset=function(){ var W=govWork(); W.folder.cats=(campOP()?EXP_OP:EXP_MDY).slice(); W.folder.cap=campOP()?13:16; govMarkW(); govPaint(); };
+ window.govMapEdit=function(sel,cn){ var W=govWork(); cn=decodeURIComponent(cn); if(sel.value) W.folder.catMap[cn]=sel.value; else delete W.folder.catMap[cn]; govMarkW(); govPaint(); };
+ window.govOvEdit=function(sel,key){ var W=govWork(); if(sel.value) W.folder.ov[key]=sel.value; else delete W.folder.ov[key]; govMarkW(); govPaint(); };
+ function govIncInit(){ if(!GV.inc){ var b=incRepBase(); GV.inc=b?b.map(function(x){return {src:x.src,a:x.a};}):[]; } return GV.inc; }
+ function govRenderInc(){
+   var L=govIncInit(), sum=L.reduce(function(s,x){return s+(+x.a||0);},0), mi=moneyIn(), d=Math.round((mi-sum)*100)/100;
+   var h='<div style="font-size:12.5px;color:var(--muted);margin-bottom:8px">Τα έσοδα όπως θα γραφτούν στη σύνοψη του φακέλου (ανά είδος: Εκδρομείς, Ταμείο Τμήματος, Ε.Π.Σ.…). <b>Δεν αλλάζουν</b> το «Στο χέρι» ή τα υπόλοιπα της εφαρμογής.'+((income&&income.length)?' <b style="color:var(--amber)">Προσοχή: η δράση έχει καταχωρημένες «πηγές εσόδων» — ο απολογισμός χρησιμοποιεί εκείνες.</b>':'')+'</div>';
+   h+='<table style="width:100%;border-collapse:collapse;font-size:13px">';
+   L.forEach(function(x,i){ h+='<tr><td style="padding:3px">'+(i+1)+'</td><td style="padding:3px"><input value="'+_gesc(x.src)+'" style="width:100%;box-sizing:border-box" oninput="govIncEdit('+i+',\'src\',this.value)"></td><td style="padding:3px;width:120px"><input value="'+(x.a!=null?String(x.a).replace('.',','):'')+'" style="width:100%;box-sizing:border-box;text-align:right" inputmode="decimal" oninput="govIncEdit('+i+',\'a\',this.value)"></td><td style="padding:3px;width:24px"><span style="cursor:pointer;color:var(--red)" onclick="govIncDel('+i+')">✕</span></td></tr>'; });
+   h+='</table><button class="pbuy" style="padding:5px 10px;margin-top:6px" onclick="govIncAdd()">＋ γραμμή εσόδου</button>';
+   h+='<div id="govIncTot" style="margin-top:10px;font-size:13px">'+govIncTotHtml(sum,mi,d)+'</div>';
+   return h;
+ }
+ function govIncTotHtml(sum,mi,d){ return '<div style="display:flex;justify-content:space-between"><span>Σύνολο εσόδων απολογισμού</span><b>'+_geur(sum)+'</b></div><div style="display:flex;justify-content:space-between;color:var(--muted)"><span>Μπήκαν στις πηγές χρημάτων (πραγματικά)</span><span>'+_geur(mi)+'</span></div>'+(Math.abs(d)>=0.01?('<div style="margin-top:4px;color:#8a5a00;font-weight:700">⚠ Διαφορά '+_geur(d)+' — θα βγει ως γραμμή «προς αιτιολόγηση».</div>'):'<div style="margin-top:4px;color:#2f7d32;font-weight:700">✓ Συμφωνούν.</div>'); }
+ window.govIncEdit=function(i,k,v){ var L=govIncInit(); if(!L[i]) return; if(k==='a'){ var n=grf(v); L[i].a=isNaN(n)?0:n; } else L[i].src=v; govMarkW(true);
+   var sum=L.reduce(function(s,x){return s+(+x.a||0);},0), mi=moneyIn(); var el=document.getElementById('govIncTot'); if(el) el.innerHTML=govIncTotHtml(sum,mi,Math.round((mi-sum)*100)/100); };
+ window.govIncAdd=function(){ govIncInit().push({src:'',a:0}); govMarkW(true); govPaint(); };
+ window.govIncDel=function(i){ govIncInit().splice(i,1); govMarkW(true); govPaint(); };
+ var _govDirty=false;
+ function govMarkW(){ _govDirty=true; var b=document.getElementById('govSaveBtn'); if(b){ b.disabled=false; b.style.opacity='1'; } }
+ window.govSave=function(){
+   if(govLocked()){ lockToast(); return; }
+   var W=govWork(), g=_gclone((A&&A.gov)||{}); g.v=1; g.folder=_gclone(W.folder);
+   /* μην κρατάς ρυθμίσεις ίδιες με την προεπιλογή (καθαρά δεδομένα) */
+   if(GV.inc){ g.incRep=GV.inc.filter(function(x){return (x.src&&x.src.trim())||+x.a;}).map(function(x){return {src:String(x.src||'').trim(),a:Math.round((+x.a||0)*100)/100};}); }
+   try{ snap(); }catch(e){}
+   A.gov=g; _govDirty=false; markDirty(); try{ render(); }catch(e){}
+   if(typeof cloudSave==='function') cloudSave();
+   GV.W=null; govPaint();
+ };
+ function govPaint(){
+   var box=document.getElementById('govBody'); if(!box) return;
+   var tabs=[['preview','👁 Προεπισκόπηση & έλεγχος'],['cats','🗂 Κατηγορίες φακέλου'],['inc','💶 Έσοδα απολογισμού']];
+   var th=tabs.map(function(t){ return '<button onclick="govTab(\''+t[0]+'\')" style="border:0;border-bottom:3px solid '+(GV.tab===t[0]?'var(--spk,#5f8535)':'transparent')+';background:none;padding:8px 10px;font-weight:'+(GV.tab===t[0]?'800':'500')+';cursor:pointer">'+t[1]+'</button>'; }).join('');
+   document.getElementById('govTabs').innerHTML=th;
+   var body = GV.tab==='cats'?govRenderCats():(GV.tab==='inc'?govRenderInc():govRenderPreview());
+   box.innerHTML=body;
+   var sb=document.getElementById('govSaveBtn'); if(sb){ sb.style.display=(GV.tab==='preview'&&!_govDirty)?'none':'inline-block'; sb.disabled=!_govDirty; sb.style.opacity=_govDirty?'1':'.5'; }
+ }
+ window.govTab=function(t){ GV.tab=t; govPaint(); };
+ window.govOpen=function(tab){
+   GV.tab=tab||'preview';
+   var ov=document.getElementById('govOv');
+   if(!ov){ ov=document.createElement('div'); ov.id='govOv'; ov.style.cssText='position:fixed;inset:0;z-index:99990;background:rgba(20,30,15,.45);display:flex;align-items:flex-start;justify-content:center;padding:18px 10px;overflow:auto';
+     ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:880px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.25);padding:14px 16px 16px">'
+       +'<div style="display:flex;align-items:center;gap:8px"><b style="font-size:16px;flex:1">📁 Φάκελος δράσης — απολογισμός</b><button id="govSaveBtn" onclick="govSave()" style="border:0;border-radius:8px;padding:7px 12px;font-weight:800;background:#5f8535;color:#fff">💾 Αποθήκευση</button><button onclick="govClose()" style="border:0;background:none;font-size:20px;cursor:pointer">✕</button></div>'
+       +'<div id="govTabs" style="display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--line,#ddd);margin:6px 0 10px"></div><div id="govBody"></div></div>';
+     ov.addEventListener('click',function(e){ if(e.target===ov) govClose(); });
+     document.body.appendChild(ov);
+     var st=document.createElement('style'); st.textContent='.govB{border:0;border-radius:9px;padding:9px 12px;font-weight:700;background:#eef3e7;color:#2b4a12;cursor:pointer}.govB small{font-weight:400;opacity:.75}'; document.head.appendChild(st);
+   }
+   ov.style.display='flex'; govPaint();
+ };
+ window.govClose=function(){ if(_govDirty && !confirm('Οι αλλαγές ρυθμίσεων δεν αποθηκεύτηκαν. Κλείσιμο χωρίς αποθήκευση;')) return; _govDirty=false; GV.W=null; GV.inc=null; var ov=document.getElementById('govOv'); if(ov) ov.style.display='none'; };
+ document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var ov=document.getElementById('govOv'); if(ov&&ov.style.display!=='none'){ e.stopPropagation(); govClose(); } } },true);
+ /* τα κουμπιά αντιγραφής του φακέλου ανοίγουν πρώτα την προεπισκόπηση */
+ window.__copySynopsiDirect=copySynopsi; window.__copyReceiptsDirect=copyReceipts;
+ copySynopsi = window.copySynopsi = function(){ govOpen('preview'); };
+ copyReceipts = window.copyReceipts = function(){ govOpen('preview'); };
+ function govInjectBtn(){ try{ var z=document.getElementById('genZipBtn'); if(z && !document.getElementById('govOpenBtn')){ var b=document.createElement('button'); b.id='govOpenBtn'; b.type='button'; b.textContent='📁 Φάκελος: ρυθμίσεις & έλεγχος'; b.style.cssText='border:0;border-radius:9px;padding:10px 12px;font-weight:700;background:#2b4a12;color:#fff'; b.onclick=function(){ govOpen('preview'); }; z.parentNode.insertBefore(b, z.nextSibling); } }catch(e){} }
+ (function(){ if(typeof render==='function'){ var _r=render; render = window.render = function(){ var r=_r.apply(this,arguments); try{ govLockBar(); govInjectBtn(); }catch(e){} return r; }; } })();
+ try{ govLockBar(); govInjectBtn(); }catch(e){}
  /* ---- Admin password: ματάκι εμφάνισης κωδικού + Enter για είσοδο ---- */
  (function(){ function initAdmin(){ var ha=document.getElementById('homeAdmin'); if(!ha||ha.__aug)return; ha.__aug=1;
    ha.addEventListener('keydown', function(ev){ if(ev.key==='Enter'||ev.keyCode===13){ ev.preventDefault(); if(typeof adminLoad==='function')adminLoad(); } });
@@ -2087,7 +2346,7 @@ function reset(){if(confirm("Επαναφορά αρχικών;")){try{localStor
    try{initAdmin();}catch(e){} var _an=0, _aiv=setInterval(function(){ try{initAdmin();}catch(e){} if(++_an>20)clearInterval(_aiv); },500);
  })();
  /* ---- Version timestamp: διακριτική ετικέτα έκδοσης (ώστε να ξέρεις ποιο build τρέχει) ---- */
- var _BUILD='2026-09-30 22:30';
+ var _BUILD='2026-10-02 10:50';
  (function(){ try{ if(document.getElementById('ovrVer'))return; var v=document.createElement('div'); v.id='ovrVer'; v.textContent='v'+_BUILD; v.title='Έκδοση εφαρμογής (build). Πάτα για αντιγραφή.'; v.style.cssText='position:fixed;top:4px;right:8px;z-index:99999;font:600 10.5px system-ui,Arial;color:#5f8535;background:rgba(255,255,255,.82);border:1px solid rgba(95,133,53,.35);border-radius:7px;padding:2px 7px;opacity:.7;cursor:pointer;user-select:all'; v.onclick=function(){ try{ if(typeof copyText==='function')copyText('v'+_BUILD,'Έκδοση αντιγράφηκε'); else navigator.clipboard.writeText('v'+_BUILD); }catch(e){} }; document.body.appendChild(v); }catch(e){} })();
  _stripCapture(document);
  /* το αρχικό cloudLoad έτρεξε πριν οριστεί το νέο (χωρίς logs/BASE) → ξανα-φόρτωσε μία φορά αν λείπει το ιστορικό */
